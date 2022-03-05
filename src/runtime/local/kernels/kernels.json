@@ -2755,11 +2755,11 @@
                     "name": "numOutputs"
                 },
                 {
-                    "type": "size_t *",
+                    "type": "int64_t *",
                     "name": "outRows"
                 },
                 {
-                    "type": "size_t *",
+                    "type": "int64_t *",
                     "name": "outCols"
                 },
                 {
@@ -2780,7 +2780,7 @@
             {
                 "name":  ["CPP"],
                 "instantiations": [
-                    [["DenseMatrix", "double"]]
+                    [["DenseMatrix", "double"]]                    
                 ]
             }
         ]
@@ -2818,11 +2818,11 @@
                     "name": "numOutputs"
                 },
                 {
-                    "type": "size_t *",
+                    "type": "int64_t *",
                     "name": "outRows"
                 },
                 {
-                    "type": "size_t *",
+                    "type": "int64_t *",
                     "name": "outCols"
                 },
                 {

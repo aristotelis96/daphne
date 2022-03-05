@@ -34,5 +34,5 @@ target_link_libraries(DaphneDSLParser PRIVATE
 )
 
 target_link_libraries(DaphneDSLParser PRIVATE
-        antlr4_static
+        antlr4_static DataStructures
 )
