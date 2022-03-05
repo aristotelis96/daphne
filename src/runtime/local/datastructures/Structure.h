@@ -156,6 +156,26 @@ public:
         return nullptr;
     }
     
+    ObjectMetaData* getObjectMetaDataByLocation(std::string location) const {
+        for(const auto& _omdType : objectMetaData) {
+            for(auto& _omd : _omdType) {
+                if(_omd->allocation->getLocation() == location)
+                    return const_cast<ObjectMetaData*>(_omd.get());
+            }
+        }
+        return nullptr;
+    }
+    
+    void updateRangeObjectMetaDataByID(size_t id, Range *r) {        
+        for(auto& _omdType : objectMetaData) {
+            for(auto& _omd : _omdType) {
+                if(_omd->omd_id == id){
+                    _omd->range = r->clone();
+                    return;
+                }
+            }
+        }
+    }
 protected:
     const ObjectMetaData* findObjectMetaData(const IAllocationDescriptor* alloc_desc, const Range* range) const {
         auto res = getObjectMetaDataByType(alloc_desc->getType());

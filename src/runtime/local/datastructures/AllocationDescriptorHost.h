@@ -25,6 +25,7 @@ public:
     [[nodiscard]] ALLOCATION_TYPE getType() const override { return ALLOCATION_TYPE::HOST; }
     void createAllocation(size_t size, bool zero) override { }
     std::shared_ptr<std::byte> getData() override { return nullptr; }
+    std::string getLocation() const override { return "host"; }
     void transferTo(std::byte* src, size_t size) override { }
     void transferFrom(std::byte* dst, size_t size) override {}
     [[nodiscard]] std::unique_ptr<IAllocationDescriptor> clone() const override {
