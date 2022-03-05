@@ -17,6 +17,7 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
 #include "ObjectMetaData.h"
 #include "runtime/local/context/CUDAContext.h"
 
@@ -41,7 +42,8 @@ public:
 
     [[nodiscard]] ALLOCATION_TYPE getType() const override { return type; }
 
-    [[nodiscard]] uint32_t getLocation() const { return device_id; }
+    // [[nodiscard]] uint32_t getLocation() const { return device_id; }
+    [[nodiscard]] std::string getLocation() const { return std::to_string(device_id); }
 
     void createAllocation(size_t size, bool zero) override {
         auto ctx = CUDAContext::get(dctx, device_id);
