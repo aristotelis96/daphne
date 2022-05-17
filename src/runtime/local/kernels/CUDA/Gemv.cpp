@@ -49,14 +49,13 @@ namespace CUDA {
         const VT *d_mat = mat->getValues(&alloc_desc);
         const VT *d_vec = vec->getValues(&alloc_desc);
 
-//        if(res == nullptr)
-//            res = DataObjectFactory::create<DenseMatrix<T>>(numCols, 1, false, ALLOCATION_TYPE::CUDA_ALLOC);
+        if(res == nullptr)
+            res = DataObjectFactory::create<DenseMatrix<T>>(numCols, 1, false, &alloc_desc);
         VT *d_res = res->getValues(&alloc_desc);
 
 //        launch_cublas_gemv<VT>(*ctx, numRows, numCols, &blend_alpha, &blend_beta, d_mat, d_vec, d_res);
 // Note: This invocation is supposed to be transposed(needed for lm microbench) + fixed for col-major behavior of cublas
-        launch_cublas_gemv<VT>(*ctx, numCols, numRows, &blend_alpha, &blend_beta, d_mat, d_vec,
-                               d_res,CUBLAS_OP_N);
+        launch_cublas_gemv<VT>(*ctx, numCols, numRows, &blend_alpha, &blend_beta, d_mat, d_vec, d_res, CUBLAS_OP_N);
     }
 
     // explicit instantiations to satisfy linker

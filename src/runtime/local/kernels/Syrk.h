@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-#ifndef SRC_RUNTIME_LOCAL_KERNELS_SYRK_H
-#define SRC_RUNTIME_LOCAL_KERNELS_SYRK_H
+#pragma once
 
 #include <runtime/local/context/DaphneContext.h>
 #include <runtime/local/datastructures/CSRMatrix.h>
@@ -56,8 +55,8 @@ struct Syrk<DenseMatrix<double>, DenseMatrix<double>> {
         const size_t numRows = arg->getNumRows();
         const size_t numCols = arg->getNumCols();
 
-//        if(res == nullptr)
-//            res = DataObjectFactory::create<DenseMatrix<double>>(numCols, numCols, false);
+        if(res == nullptr)
+            res = DataObjectFactory::create<DenseMatrix<double>>(numCols, numCols, false);
 
         cblas_dsyrk(CblasRowMajor,
             CblasUpper,
@@ -84,8 +83,8 @@ struct Syrk<DenseMatrix<float>, DenseMatrix<float>> {
         const size_t numRows = arg->getNumRows();
         const size_t numCols = arg->getNumCols();
 
-//        if(res == nullptr)
-//            res = DataObjectFactory::create<DenseMatrix<float>>(numCols, numCols, false);
+        if(res == nullptr)
+            res = DataObjectFactory::create<DenseMatrix<float>>(numCols, numCols, false);
 
         cblas_ssyrk(CblasRowMajor,
             CblasUpper,
@@ -121,5 +120,3 @@ struct Syrk<CSRMatrix<VT>, CSRMatrix<VT>> {
         assert(false && "TODO: Syrk for Sparse");
     }
 };
-
-#endif //SRC_RUNTIME_LOCAL_KERNELS_SYRK_H
