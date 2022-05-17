@@ -50,7 +50,6 @@ class DenseMatrix : public Matrix<ValueType>
     
     size_t rowSkip;
     std::shared_ptr<ValueType[]> values{};
-//    std::vector<DenseMatrixDataPlacement<ValueType>*> allocations{};
     
     size_t lastAppendedRowIdx;
     size_t lastAppendedColIdx;
@@ -191,14 +190,9 @@ public:
     }
 
     void print(std::ostream & os) const override {
-        os << "DenseMatrix(" << numRows << 'x' << numCols << ", "
-                << ValueTypeUtils::cppNameFor<ValueType> << ')' << std::endl;
-//ToDo:
-//#ifdef USE_CUDA
-//        if ((cuda_ptr && cuda_dirty) || !values) {
-//              cuda2host();
-//        }
-//#endif
+        os << "DenseMatrix(" << numRows << 'x' << numCols << ", " << ValueTypeUtils::cppNameFor<ValueType> << ')'
+                << std::endl;
+
         for (size_t r = 0; r < numRows; r++) {
             for (size_t c = 0; c < numCols; c++) {
                 printValue(os, get(r, c));
@@ -224,59 +218,9 @@ public:
     // convenience functions
     size_t bufferSize();
 
-    size_t bufferSize() const { return const_cast<DenseMatrix*>(this)->bufferSize(); }
-
-    float printBufferSize() const { return static_cast<float>(bufferSize()) / (1048576); }
-
+    [[nodiscard]] size_t bufferSize() const { return const_cast<DenseMatrix*>(this)->bufferSize(); }
+    
     DenseMatrix<ValueType>* vectorTranspose() const;
-
-
-// ToDo:
-//    const ValueType* getValuesCUDA() const {
-//        if(!cuda_ptr)
-//            const_cast<DenseMatrix*>(this)->alloc_shared_cuda_buffer();
-//
-//        if(host_dirty || (!cuda_buffer_current && host_buffer_current)) {
-//            host2cuda();
-//        }
-//        cuda_buffer_current = true;
-//        return cuda_ptr.get();
-//    }
-//
-//    ValueType* getValuesCUDA() {
-//        if(!cuda_ptr)
-//            alloc_shared_cuda_buffer();
-//
-//        if(host_dirty || (!cuda_buffer_current && host_buffer_current)) {
-//            host2cuda();
-//        }
-//        cuda_dirty = true;
-//        cuda_buffer_current = true;
-//        host_buffer_current = false;
-//        return cuda_ptr.get();
-//    }
-
-//    [[maybe_unused]] bool isBufferDirty(ALLOCATION_TYPE type) const {
-////        switch(type) {
-////            case ALLOCATION_TYPE::CUDA_ALLOC:
-////                return cuda_dirty;
-////            case ALLOCATION_TYPE::HOST_ALLOC:
-////            default:
-////                return host_dirty;
-////        }
-//return host_dirty;
-//    }
-//
-//    [[maybe_unused]] bool isBufferCurrent(ALLOCATION_TYPE type) const {
-////        switch(type) {
-////            case ALLOCATION_TYPE::CUDA_ALLOC:
-////                return cuda_buffer_current;
-////            case ALLOCATION_TYPE::HOST_ALLOC:
-////            default:
-////                return host_buffer_current;
-////        }
-//return host_buffer_current;
-//    }
 };
 
 template <typename ValueType>

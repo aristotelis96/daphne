@@ -23,8 +23,9 @@ DenseMatrix<ValueType>::DenseMatrix(size_t maxNumRows, size_t numCols, bool zero
     ObjectMetaData* omd;
     if(allocInfo != nullptr) {
 #ifndef NDEBUG
-        std::cout << "creating dense matrix of allocation type " << static_cast<int>(allocInfo->getType()) <<
-                  ", dims: " << numRows << "x" << numCols << " req.mem.: " << printBufferSize() << "Mb" <<  std::endl;
+        std::cout << "creating dense matrix of allocation type " << static_cast<int>(allocInfo->getType()) << ", dims: "
+                << numRows << "x" << numCols << " req.mem.: " << static_cast<float>(bufferSize()) / (1048576) << "Mb"
+                <<  std::endl;
 #endif
         omd = this->addObjectMetaData(allocInfo);
         omd->allocation->createAllocation(bufferSize(), zero);
@@ -73,7 +74,7 @@ const ValueType* DenseMatrix<ValueType>::getValuesInternal(const IAllocationDesc
             return reinterpret_cast<ValueType*>(omd->allocation->getData().get());
         }
         else {
-            //if not in latest transfer + add to latest
+            // if not in latest, transfer + add to latest
             if(!this->isLatestVersion(ret->omd_id)) {
                 ret->allocation->transferTo(reinterpret_cast<std::byte*>(values.get()), bufferSize());
                 const_cast<DenseMatrix<ValueType>*>(this)->latest_version.push_back(ret->omd_id);
@@ -100,10 +101,13 @@ template <typename ValueType> void DenseMatrix<ValueType>::printValue(std::ostre
 
 // Convert to an integer to print uint8_t values as numbers
 // even if they fall into the range of special ASCII characters.
-template <> void DenseMatrix<unsigned char>::printValue(std::ostream & os, unsigned char val) const {
+template <>
+[[maybe_unused]] void DenseMatrix<unsigned char>::printValue(std::ostream & os, unsigned char val) const {
     os << static_cast<unsigned int>(val);
 }
-template <> void DenseMatrix<signed char>::printValue(std::ostream & os, signed char val) const {
+
+template <>
+[[maybe_unused]] void DenseMatrix<signed char>::printValue(std::ostream & os, signed char val) const {
     os << static_cast<int>(val);
 }
 

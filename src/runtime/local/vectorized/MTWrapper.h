@@ -86,7 +86,7 @@ protected:
         if(buffer_usage < 1.0) {
             for (auto i = 0u; i < numInputs; ++i) {
                 if(splits[i] == mlir::daphne::VectorSplit::ROWS) {
-                    [[maybe_unused]] auto bla = static_cast<const DT*>(inputs[i])->getValues(&alloc_desc);
+                    [[maybe_unused]] auto unused = static_cast<const DT*>(inputs[i])->getValues(&alloc_desc);
                 }
             }
         }
