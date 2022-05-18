@@ -23,6 +23,7 @@
 #include <cstddef>
 #include <map>
 #include <mutex>
+#include <array>
 
 /**
  * @brief The base class of all data structure implementations.
