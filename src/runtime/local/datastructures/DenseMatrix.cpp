@@ -58,6 +58,10 @@ DenseMatrix<ValueType>::DenseMatrix(const DenseMatrix * src, size_t rowLowerIncl
     auto offset = rowLowerIncl * src->rowSkip + colLowerIncl;
     alloc_shared_values(src->values, offset);
     // ToDo: handle object meta data
+    AllocationDescriptorHost myHostAllocInfo;
+    ObjectMetaData* omd = this->addObjectMetaData(&myHostAllocInfo);
+    this->omd_id = omd->omd_id;
+
 }
 
 template<typename ValueType>
@@ -88,8 +92,12 @@ const ValueType* DenseMatrix<ValueType>::getValuesInternal(const IAllocationDesc
             const_cast<DenseMatrix *>(this)->alloc_shared_values();
         if(!this->findObjectMetaData(&myHostAllocInfo, nullptr)) {
             auto ret = this->getObjectMetaDataByID(this->omd_id);
-            ret->allocation->transferFrom(reinterpret_cast<std::byte*>(values.get()), bufferSize());
-            const_cast<DenseMatrix<ValueType>*>(this)->latest_version.push_back(this->omd_id);
+            if(ret) {
+                ret->allocation->transferFrom(reinterpret_cast<std::byte *>(values.get()), bufferSize());
+                const_cast<DenseMatrix<ValueType> *>(this)->latest_version.push_back(this->omd_id);
+            }
+            else
+                throw std::runtime_error("Error: no object meta data in matrix");
         }
         return values.get();
     }
