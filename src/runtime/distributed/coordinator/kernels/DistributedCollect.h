@@ -41,7 +41,7 @@
 
 template<ALLOCATION_TYPE AT, class DT>
 struct DistributedCollect {
-    static void apply(DT *&mat, DCTX(dctx)) = delete;
+    static void apply(DT *&mat, const VectorCombine &combine, DCTX(dctx)) = delete;
 };
 
 // ****************************************************************************
@@ -49,9 +49,9 @@ struct DistributedCollect {
 // ****************************************************************************
 
 template<ALLOCATION_TYPE AT, class DT>
-void distributedCollect(DT *&mat, DCTX(dctx))
+void distributedCollect(DT *&mat, const VectorCombine &combine, DCTX(dctx))
 {
-    DistributedCollect<AT, DT>::apply(mat, dctx);
+    DistributedCollect<AT, DT>::apply(mat, combine, dctx);
 }
 
 
@@ -68,7 +68,7 @@ void distributedCollect(DT *&mat, DCTX(dctx))
 template<class DT>
 struct DistributedCollect<ALLOCATION_TYPE::DIST_MPI, DT>
 {
-    static void apply(DT *&mat, DCTX(dctx)) 
+    static void apply(DT *&mat, const VectorCombine& combine, DCTX(dctx)) 
     {
         assert (mat != nullptr && "result matrix must be already allocated by wrapper since only there exists information regarding size");        
         size_t worldSize = MPIHelper::getCommSize();
@@ -132,7 +132,7 @@ struct DistributedCollect<ALLOCATION_TYPE::DIST_MPI, DT>
 template<class DT>
 struct DistributedCollect<ALLOCATION_TYPE::DIST_GRPC_ASYNC, DT>
 {
-    static void apply(DT *&mat, DCTX(dctx)) 
+    static void apply(DT *&mat, const VectorCombine& combine, DCTX(dctx)) 
     {
         assert (mat != nullptr && "result matrix must be already allocated by wrapper since only there exists information regarding size");        
 
@@ -197,7 +197,7 @@ struct DistributedCollect<ALLOCATION_TYPE::DIST_GRPC_ASYNC, DT>
 template<class DT>
 struct DistributedCollect<ALLOCATION_TYPE::DIST_GRPC_SYNC, DT>
 {
-    static void apply(DT *&mat, DCTX(dctx)) 
+    static void apply(DT *&mat, const VectorCombine& combine, DCTX(dctx)) 
     {
         assert (mat != nullptr && "result matrix must be already allocated by wrapper since only there exists information regarding size");        
 
@@ -212,9 +212,10 @@ struct DistributedCollect<ALLOCATION_TYPE::DIST_GRPC_SYNC, DT>
             distributed::StoredData protoData;
             protoData.set_identifier(distributedData.identifier);
             protoData.set_num_rows(distributedData.numRows);
-            protoData.set_num_cols(distributedData.numCols);                       
+            protoData.set_num_cols(distributedData.numCols);      
 
-            std::thread t([address, dp = dp.get(), protoData, distributedData, &mat, &ctx]() mutable
+            std::mutex lock;
+            std::thread t([address, dp = dp.get(), protoData, distributedData, &combine, &lock, &mat, &ctx]() mutable
             {
                 auto stub = ctx->stubs[address].get();
 
@@ -232,13 +233,18 @@ struct DistributedCollect<ALLOCATION_TYPE::DIST_GRPC_SYNC, DT>
                 auto slicedMat = dynamic_cast<DenseMatrix<double>*>(DF_deserialize(buf));
                 auto resValues = denseMat->getValues() + (dp->range->r_start * denseMat->getRowSkip());
                 auto slicedMatValues = slicedMat->getValues();
-                for (size_t r = 0; r < dp->range->r_len; r++){
-                    memcpy(resValues + dp->range->c_start, slicedMatValues, dp->range->c_len * sizeof(double));
-                    resValues += denseMat->getRowSkip();                    
-                    slicedMatValues += slicedMat->getRowSkip();
+                if (combine == VectorCombine::ADD) {
+                    lock.lock();
+                    ewBinaryMat(BinaryOpCode::ADD, denseMat, slicedMat, denseMat, nullptr);
+                    lock.unlock();
+                } else {
+                    for (size_t r = 0; r < dp->range->r_len; r++){
+                        memcpy(resValues + dp->range->c_start, slicedMatValues, dp->range->c_len * sizeof(double));
+                        resValues += denseMat->getRowSkip();                    
+                        slicedMatValues += slicedMat->getRowSkip();
+                    }
                 }
                 DataObjectFactory::destroy(slicedMat);
-                
                 distributedData.isPlacedAtWorker = false;
                 dynamic_cast<AllocationDescriptorGRPC&>(*(dp->allocation)).updateDistributedData(distributedData);
             });
