@@ -27,16 +27,34 @@ int main(int argc, char *argv[])
     DaphneUserConfig user_config{};
     auto logger = std::make_unique<DaphneLogger>(user_config);
 
-    if (argc != 2) {
-        std::cout << "Usage: " << argv[0] << " <Address:Port>" << std::endl;
+    std::string dist_backend = ""; // Variable to store the value of dist_backend
+
+    for (int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        if (arg.find("--dist_backend=") == 0) {
+            dist_backend = arg.substr(15); // Extract the value after the "=" sign
+        }
+    }
+
+    if (argc < 2 || dist_backend.empty()) {
+        std::cout << "Usage: " << argv[0] << " --dist_backend=<str> <Address:Port>" << std::endl;
         exit(1);
     }
-    auto addr = argv[1];
+
+    auto addr = argv[argc - 1]; // Get the last argument as the address
 
     // TODO choose specific implementation based on arguments or config file
-    WorkerImpl *service = new WorkerImplGRPCSync(addr, user_config);
+    WorkerImpl *service;
+    if (dist_backend == "sync-gRPC"){
+        service = new WorkerImplGRPCSync(addr, user_config);
+        std::cout << "Started Distributed Worker with synchronous gRPC on `" << addr << "`\n";
+    } else if (dist_backend == "async-gRPC") {
+        service = new WorkerImplGRPCAsync(addr, user_config);
+        std::cout << "Started Distributed Worker with asynchronous gRPC on `" << addr << "`\n";
+    } else {
+        std::cout << "We currently support only \"sync-gRPC\" or \"async-gRPC\"" << std::endl;
+    }
     
-    std::cout << "Started Distributed Worker on `" << addr << "`\n";
     service->Wait();
 
     return 0;
