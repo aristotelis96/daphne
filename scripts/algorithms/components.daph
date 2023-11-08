@@ -26,37 +26,35 @@
 # where each component is identified by the maximum vertex ID
 # (i.e., row/column position of the input graph) 
 
-maxi = 0; # unlimited
+maxi = 19; # unlimited
 verbose = true;
-
-# read sparse graph 
-# G = readMatrix($G);
-n = $n;
-e = $e;
-UT = upperTri(rand(n, n, 1.0, 1.0, 2.0*e/n^2.0, -1), false, false);
-G = UT + t(UT);
-
-# best effort check for symmetry (not exact but fast)
-if( sum(sum(G,0) != t(sum(G,1))) > 0.0 ) {
-    print("Connected Components: input graph needs to be "
-        + "symmetric but rowSums and colSums don't match up.");
-}
-
+t1_read = now();
+# read sparse graph
+G = readMatrix($G);
+t2_read = now();
 # initialize state with vertex ids
 c = seq(1.0, nrow(G), 1.0);
 diff = as.f64(nrow(G));
 iter = 1;
-
+t1 = now();
 # iterative computation of connected components
-while( as.si64(diff > 0.0) && (maxi==0 || iter<=maxi) ) {
+for(iter in 1:maxi) {
+    ti0 = now();
     u = max(aggMax(G * t(c), 0), c);
     diff = sum(u != c);
     c = u; # update assignment
+    ti1 = now();
     if( verbose ) {
-        print("Connected components: iter = ",0,0); print(iter+", #diff = "+diff);
+        print("Connected components: iter = ",0,0); print(iter+", #diff = "+diff,0,0);
+        print(",   #duration[ms]: ", 0, 0);
+        print((ti1 - ti0)*10.0^(-6));
     }
-    iter = iter + 1;
 }
-
+t2 = now();
 # write vertex assignment
 writeMatrix(c, $C);
+
+print("Read: " , 0);
+print((t2_read - t1_read)/ 1000000000.0);
+print("Compute: ", 0);
+print((t2 - t1)/ 1000000000.0);
