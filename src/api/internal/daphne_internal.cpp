@@ -436,7 +436,11 @@ int startDAPHNE(int argc, const char** argv, DaphneLibResult* daphneLibRes, int 
 #ifndef USE_MPI
     throw std::runtime_error("you are trying to use the MPI backend. But, Daphne was not build with --mpi option\n");    
 #else
-        MPI_Init(NULL,NULL);
+        int provided;
+        MPI_Init_thread(NULL,NULL, MPI_THREAD_MULTIPLE, &provided);
+        if (provided < MPI_THREAD_MULTIPLE){
+            throw std::runtime_error("ERROR: The MPI library does not have full thread support");
+        }
         MPI_Comm_rank(MPI_COMM_WORLD, id);
         int size=0;
         MPI_Comm_size(MPI_COMM_WORLD, &size);

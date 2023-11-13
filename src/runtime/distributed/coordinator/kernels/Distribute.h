@@ -67,8 +67,9 @@ struct Distribute<ALLOCATION_TYPE::DIST_MPI, DT>
         std::vector<char> dataToSend;
         std::vector<int> targetGroup;  
 
+        std::vector<std::thread> threads_vector;
+
         LoadPartitioningDistributed<DT, AllocationDescriptorMPI> partioner(DistributionSchema::DISTRIBUTE, mat, dctx);        
-        
         while (partioner.HasNextChunk()){
             DataPlacement *dp = partioner.GetNextChunk();
             auto rank = dynamic_cast<AllocationDescriptorMPI&>(*(dp->allocation)).getRank();
@@ -76,20 +77,28 @@ struct Distribute<ALLOCATION_TYPE::DIST_MPI, DT>
             if (dynamic_cast<AllocationDescriptorMPI&>(*(dp->allocation)).getDistributedData().isPlacedAtWorker)
                 continue;
             
-            auto slicedMat = mat->sliceRow(dp->range->r_start, dp->range->r_start + dp->range->r_len);
+            std::thread t([=, &mat]()
+            {
+                auto slicedMat = mat->sliceRow(dp->range->r_start, dp->range->r_start + dp->range->r_len);
+                
+                // Minimum chunk size
+                auto min_chunk_size = dctx->config.max_distributed_serialization_chunk_size < DaphneSerializer<DT>::length(slicedMat) ? 
+                            dctx->config.max_distributed_serialization_chunk_size : 
+                            DaphneSerializer<DT>::length(slicedMat);
+                MPIHelper::initiateStreaming(rank, min_chunk_size);
+                auto serializer = DaphneSerializerChunks<DT>(slicedMat, min_chunk_size);
+                for (auto it = serializer.begin(); it != serializer.end(); ++it){
+                    MPIHelper::sendData(it->first, it->second->data(), rank);
+                }
+                DataObjectFactory::destroy(slicedMat);
+                
+            });
+            targetGroup.push_back(rank);
+            threads_vector.push_back(move(t));
             
-            // Minimum chunk size
-            auto min_chunk_size = dctx->config.max_distributed_serialization_chunk_size < DaphneSerializer<DT>::length(slicedMat) ? 
-                        dctx->config.max_distributed_serialization_chunk_size : 
-                        DaphneSerializer<DT>::length(slicedMat);
-            MPIHelper::initiateStreaming(rank, min_chunk_size);
-            auto serializer = DaphneSerializerChunks<DT>(slicedMat, min_chunk_size);
-            for (auto it = serializer.begin(); it != serializer.end(); ++it){
-                MPIHelper::sendData(it->first, it->second->data(), rank);
-            }
-            targetGroup.push_back(rank);     
-            DataObjectFactory::destroy(slicedMat);
         }
+        for (auto &thread: threads_vector)
+            thread.join();
         for(size_t i=0;i<targetGroup.size();i++)
         {
             int rank=targetGroup.at(i);

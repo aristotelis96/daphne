@@ -79,7 +79,7 @@ struct Broadcast<ALLOCATION_TYPE::DIST_MPI, DT>
             mat = DataObjectFactory::create<DenseMatrix<double>>(0, 0, false);
         }
         std::vector<int> targetGroup; // We will not be able to take the advantage of broadcast if some mpi processes have the data
-        
+        std::vector<std::thread> threads_vector;
         LoadPartitioningDistributed<DT, AllocationDescriptorMPI> partioner(DistributionSchema::BROADCAST, mat, dctx);
         while (partioner.HasNextChunk()){
             auto dp = partioner.GetNextChunk();
@@ -92,10 +92,15 @@ struct Broadcast<ALLOCATION_TYPE::DIST_MPI, DT>
             auto min_chunk_size = dctx->config.max_distributed_serialization_chunk_size < DaphneSerializer<DT>::length(mat) ? 
                         dctx->config.max_distributed_serialization_chunk_size : 
                         DaphneSerializer<DT>::length(mat);
-
-            MPIHelper::initiateStreaming(rank, min_chunk_size);
+            std::thread t([=]()
+            {
+                MPIHelper::initiateStreaming(rank, min_chunk_size);
+            });
+            threads_vector.push_back(move(t));
             targetGroup.push_back(rank);  
         }
+        for (auto &thread : threads_vector)
+            thread.join();
 
         if((int)targetGroup.size()==MPIHelper::getCommSize() - 1){ // exclude coordinator
             if (isScalar){
